@@ -1,7 +1,10 @@
 #include "network_devices.h"
 #include <iostream>
 #include <iomanip> // for formatting
+#include <chrono> // for capture time
 #include "clean_devices.h"
+#include <pcap.h>
+#include <funcattrs.h>
 
 void displayNetworkDevices(const std::vector<NetworkDevice>& devices) {
     std::cout << "\nAvailable Network Interfaces:\n";
@@ -20,12 +23,8 @@ void displayNetworkDevices(const std::vector<NetworkDevice>& devices) {
 #ifdef _WIN32
     #include <winsock2.h> // Inclusion for wpcap
     #include <windows.h> // Windows API
-    #include <pcap.h> // Npcap
-    #include <funcattrs.h> // libpcap dependency
 #elif defined(__linux__)
     #include <unistd.h> // UNIX API
-    #include <pcap.h> // libpcap
-    #include <funcattrs.h> // libpcap dependency
 #endif
 
 std::vector<NetworkDevice> getNetworkDevices() {
@@ -39,13 +38,49 @@ std::vector<NetworkDevice> getNetworkDevices() {
         return devices;
     }
 
-    for (dev = alldevs; dev != NULL; dev = dev->next) {
+    for (pcap_if_t* d = alldevs; d != nullptr; d = d->next) {
         NetworkDevice device;
-        device.name = cleanDeviceName(dev->name);
-        device.description = (dev->description) ? dev->description : "No description available"; 
+        device.name = d->name;
+        device.description = (d->description) ? d->description : "No description available";
+        device.packetCount = 0;
         devices.push_back(device);
     }
-
     pcap_freealldevs(alldevs);
     return devices;
+}
+
+void captureTraffic(NetworkDevice& device) {
+    pcap_t *handle;
+    char errbuf[PCAP_ERRBUF_SIZE];
+
+    handle = pcap_open_live(device.name.c_str(), 65535, 1, 1000, errbuf);
+    if (handle == NULL) {
+        std::cerr << "Error opening device " << device.name << ": " << errbuf << std::endl;
+        return;
+    }
+
+    std::cout << "Capturing packets on " << device.name << " (" << device.description << ")" << std::endl;
+
+    struct pcap_pkthdr header;
+    const u_char *packet;
+    for (int i = 0; i < 10; ++i) {
+        packet = pcap_next(handle, &header);
+        std::cout << "Captured a packet of length: " << header.len << std::endl;   
+        device.packetCount++;
+    }
+
+    pcap_close(handle);
+}
+
+NetworkDevice detectMainDevice(const std::vector<NetworkDevice>& devices) {
+    NetworkDevice mainDevice;
+    int maxPackets = -1;
+
+    for (const auto& device : devices) {
+        if (device.packetCount > maxPackets) {
+            maxPackets = device.packetCount;
+            mainDevice = device;
+        }
+    }
+    return mainDevice;
 }

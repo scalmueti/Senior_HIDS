@@ -29,17 +29,22 @@ void detectOS() {
 int main() {
     detectOS(); 
 
-    std::vector<NetworkDevice> devices = getNetworkDevices();
+    auto devices = getNetworkDevices();
 
     if (devices.empty()) {
-        std::cout << "No network devices found.\n";
+        std::cout << "No network devices found!" << std::endl;
         return 1;
     }
 
-    displayNetworkDevices(devices);
+    std::cout << "Detected " << devices.size() << " network devices." << std::endl;
 
-    std::cout << "\nPress enter to exit...";
-    std::cin.get();
+    for (auto& device : devices) {
+        std::cout << "Capturing traffic on: " << device.name << " (" << device.description << ")" << std::endl;
+        captureTraffic(device);
+    }
 
+    NetworkDevice mainDevice = detectMainDevice(devices);
+    
+    std::cout << "Main interface: " << mainDevice.name << " (" << mainDevice.description << ")" << std::endl;
     return 0;
 }
