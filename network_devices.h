@@ -12,5 +12,6 @@ struct NetworkDevice {
 
 // func
 void displayNetworkDevices(const std::vector<NetworkDevice>& devices);
+std::vector<NetworkDevice> getNetworkDevices();
 
 #endif
