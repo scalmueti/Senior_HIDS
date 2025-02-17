@@ -14,20 +14,29 @@
     #include <funcattrs.h> // libpcap dependency
 #endif
 
-void detectOS() {
+std::string detectOS() {
+    std::string status;
     #ifdef _WIN32
         std::cout << "Running on Windows, using Npcap.\n";
+        status = "WINDOWS";
+        return status;
     #elif __APPLE__
         std::cout << "Running on macOS, using libpcap.\n";
+        status = "MACOS";
+        return status;
     #elif __linux__
         std::cout << "Running on Linux, using libpcap.\n";
+        status = "LINUX";
+        return status;
     #else
         std::cout << "Unknown OS, packet capture might not work!\n";
+        status = "WINDOWS";
+        return status;
     #endif
 }
 
 int main() {
-    detectOS(); 
+    std::string usedOS = detectOS(); 
 
     auto devices = getNetworkDevices();
 
@@ -38,13 +47,7 @@ int main() {
 
     std::cout << "Detected " << devices.size() << " network devices." << std::endl;
 
-    for (auto& device : devices) {
-        std::cout << "Capturing traffic on: " << device.name << " (" << device.description << ")" << std::endl;
-        captureTraffic(device);
-    }
+    scanDevicesStatus(devices);
 
-    NetworkDevice mainDevice = detectMainDevice(devices);
-    
-    std::cout << "Main interface: " << mainDevice.name << " (" << mainDevice.description << ")" << std::endl;
     return 0;
 }

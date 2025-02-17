@@ -23,14 +23,40 @@ void displayNetworkDevices(const std::vector<NetworkDevice>& devices) {
 #ifdef _WIN32
     #include <winsock2.h> // Inclusion for wpcap
     #include <windows.h> // Windows API
+    #include <iphlpapi.h> // Windows API for network info
 #elif defined(__linux__)
     #include <unistd.h> // UNIX API
 #endif
 
+bool hasIPAddress(const std::string& deviceName) {
+    ULONG outBufLen = 0;
+    GetAdaptersAddresses(AF_UNSPEC, 0, NULL, NULL, &outBufLen);
+    std::vector<unsigned char> buffer(outBufLen);
+    IP_ADAPTER_ADDRESSES *pAddresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(buffer.data());
+
+    if (GetAdaptersAddresses(AF_UNSPEC, 0, NULL, pAddresses, &outBufLen) != NO_ERROR) {
+        return false;
+    }
+
+    std::string deviceGUID = cleanDeviceName(deviceName);  // Extract GUID from device name
+
+    for (IP_ADAPTER_ADDRESSES *adapter = pAddresses; adapter; adapter = adapter->Next) {
+        std::string adapterGUID = adapter->AdapterName;
+
+        // Remove braces from AdapterName if they exist
+        adapterGUID.erase(std::remove(adapterGUID.begin(), adapterGUID.end(), '{'), adapterGUID.end());
+        adapterGUID.erase(std::remove(adapterGUID.begin(), adapterGUID.end(), '}'), adapterGUID.end());
+
+        if (adapter->OperStatus == IfOperStatusUp && adapterGUID == deviceGUID) {
+            return adapter->FirstUnicastAddress != nullptr;  // True if the adapter has an IP
+        }
+    }
+    return false;
+}
+
 std::vector<NetworkDevice> getNetworkDevices() {
-    //Init pcap
     std::vector<NetworkDevice> devices;
-    pcap_if_t *alldevs, *dev;
+    pcap_if_t *alldevs;
     char errbuf[PCAP_ERRBUF_SIZE];
 
     if (pcap_findalldevs(&alldevs, errbuf) == -1) {
@@ -38,49 +64,31 @@ std::vector<NetworkDevice> getNetworkDevices() {
         return devices;
     }
 
-    for (pcap_if_t* d = alldevs; d != nullptr; d = d->next) {
-        NetworkDevice device;
-        device.name = d->name;
-        device.description = (d->description) ? d->description : "No description available";
-        device.packetCount = 0;
-        devices.push_back(device);
-    }
-    pcap_freealldevs(alldevs);
-    return devices;
-}
+    for (pcap_if_t *dev = alldevs; dev != nullptr; dev = dev->next) {
+        NetworkDevice networkDevice;
+        networkDevice.name = dev->name;
+        networkDevice.description = dev->description ? dev->description : "No description";
 
-void captureTraffic(NetworkDevice& device) {
-    pcap_t *handle;
-    char errbuf[PCAP_ERRBUF_SIZE];
+        pcap_t *handle = pcap_open_live(dev->name, BUFSIZ, 1, 1000, errbuf);
+        networkDevice.isUp = handle != nullptr;
+        if (handle) pcap_close(handle);
 
-    handle = pcap_open_live(device.name.c_str(), 65535, 1, 1000, errbuf);
-    if (handle == NULL) {
-        std::cerr << "Error opening device " << device.name << ": " << errbuf << std::endl;
-        return;
-    }
+        networkDevice.hasIPAddress = hasIPAddress(networkDevice.name);
 
-    std::cout << "Capturing packets on " << device.name << " (" << device.description << ")" << std::endl;
-
-    struct pcap_pkthdr header;
-    const u_char *packet;
-    for (int i = 0; i < 10; ++i) {
-        packet = pcap_next(handle, &header);
-        std::cout << "Captured a packet of length: " << header.len << std::endl;   
-        device.packetCount++;
-    }
-
-    pcap_close(handle);
-}
-
-NetworkDevice detectMainDevice(const std::vector<NetworkDevice>& devices) {
-    NetworkDevice mainDevice;
-    int maxPackets = -1;
-
-    for (const auto& device : devices) {
-        if (device.packetCount > maxPackets) {
-            maxPackets = device.packetCount;
-            mainDevice = device;
+        if (networkDevice.isUp && networkDevice.hasIPAddress) {
+            devices.push_back(networkDevice);
         }
     }
-    return mainDevice;
+
+    pcap_freealldevs(alldevs);
+    return devices;
+    
 }
+
+void scanDevicesStatus(const std::vector<NetworkDevice>& devices) {
+    for (const auto& device : devices) {
+        std::cout << "Device: " << device.description << " (GUID: " << device.name << ")\n";
+        std::cout << "Status: " << (device.isUp ? "Up" : "Down") << "\n";
+    }
+}
+

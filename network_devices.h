@@ -12,13 +12,19 @@
 struct NetworkDevice {
     std::string name;
     std::string description;
-    int packetCount;
+    bool isUp;
+    bool hasIPAddress;
 };
 
 // func
 void displayNetworkDevices(const std::vector<NetworkDevice>& devices);
 std::vector<NetworkDevice> getNetworkDevices();
+void scanDevicesStatus(const std::vector<NetworkDevice>& devices);
+
+/*
 NetworkDevice detectMainDevice(const std::vector<NetworkDevice>& devices);
-void captureTraffic(NetworkDevice& device);
+int captureTraffic(pcap_t *handle, int durationMs);
+std::vector<NetworkDevice> detectActiveInterfaces(const std::vector<NetworkDevice>& devices);
+*/
 
 #endif
