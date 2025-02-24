@@ -20,6 +20,7 @@ struct NetworkDevice {
 void displayNetworkDevices(const std::vector<NetworkDevice>& devices);
 std::vector<NetworkDevice> getNetworkDevices();
 void scanDevicesStatus(const std::vector<NetworkDevice>& devices);
+void menu();
 
 /*
 NetworkDevice detectMainDevice(const std::vector<NetworkDevice>& devices);

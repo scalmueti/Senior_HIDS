@@ -5,6 +5,10 @@
 #include "clean_devices.h"
 #include <pcap.h>
 #include <funcattrs.h>
+#include <thread>
+#include <mutex>
+#include <unordered_map>
+#include "ddos.h"
 
 void displayNetworkDevices(const std::vector<NetworkDevice>& devices) {
     std::cout << "\nAvailable Network Interfaces:\n";
@@ -92,3 +96,53 @@ void scanDevicesStatus(const std::vector<NetworkDevice>& devices) {
     }
 }
 
+void menu() {
+
+    std::mutex trafficMutex;
+    const int PACKET_THRESHOLD = 1000;  
+    std::map<std::string, int> trafficData;
+    std::atomic<bool> running(true);
+
+    while (true) {
+        std::cout << "\n=== Network Security Tool ===\n";
+        std::cout << "1. Scan Active Network Interfaces\n";
+        std::cout << "2. Start DDoS Detection (UNFINISHED)\n";
+        std::cout << "3. Exit\n";
+        std::cout << "Enter choice: ";
+
+        int choice;
+        std::cin >> choice;
+
+        if (choice == 1) {
+            auto devices = getNetworkDevices();
+
+            if (devices.empty()) {
+                std::cout << "No network devices found!" << std::endl;
+            }
+
+            std::cout << "Detected " << devices.size() << " network devices." << std::endl;
+
+            scanDevicesStatus(devices);
+        } else if (choice == 2) {
+            auto devices = getNetworkDevices();
+            std::string selectedDevice = selectActiveInterface(devices);
+            if (!selectedDevice.empty()) {
+                running = true;
+                std::thread ddosThread(startDDoSDetection, selectedDevice);
+                
+                std::cout << "Press Enter to stop DDoS monitoring...\n";
+                std::cin.ignore();
+                std::cin.get();
+                
+                running = false;
+                ddosThread.join();
+            }
+        } else if (choice == 3) {
+            std::cout << "Exiting...\n";
+            break;
+        } else {
+            std::cout << "Invalid choice. Try again.\n";
+        
+        }
+    }
+}

@@ -37,17 +37,5 @@ std::string detectOS() {
 
 int main() {
     std::string usedOS = detectOS(); 
-
-    auto devices = getNetworkDevices();
-
-    if (devices.empty()) {
-        std::cout << "No network devices found!" << std::endl;
-        return 1;
-    }
-
-    std::cout << "Detected " << devices.size() << " network devices." << std::endl;
-
-    scanDevicesStatus(devices);
-
-    return 0;
+    menu();
 }
