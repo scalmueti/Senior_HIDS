@@ -106,7 +106,7 @@ void menu() {
     while (true) {
         std::cout << "\n=== Network Security Tool ===\n";
         std::cout << "1. Scan Active Network Interfaces\n";
-        std::cout << "2. Start DDoS Detection (UNFINISHED)\n";
+        std::cout << "2. Start DDoS Detection\n";
         std::cout << "3. Exit\n";
         std::cout << "Enter choice: ";
 

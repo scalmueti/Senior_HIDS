@@ -21,7 +21,7 @@
 
 
 std::mutex trafficMutex;
-const int PACKET_THRESHOLD = 1000;  
+const int PACKET_THRESHOLD = 50000;  
 std::map<std::string, int> trafficData;
 std::atomic<bool> running(true);
 
@@ -61,19 +61,23 @@ std::string selectActiveInterface(const std::vector<NetworkDevice>& devices) {
     return activeDevices[choice - 1].name; 
 }
 
-
 void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
     if (!running) return;
 
     std::lock_guard<std::mutex> lock(trafficMutex);
     
-    std::string srcIP = "UNKNOWN";  
+    const u_char* ipHeader = packet + 14; // Skip Ethernet header
+    char srcIP[16];
+    snprintf(srcIP, sizeof(srcIP), "%d.%d.%d.%d", ipHeader[12], ipHeader[13], ipHeader[14], ipHeader[15]);
+    
+    if (srcIP == "192.168.1.45") return;
 
     trafficData[srcIP]++;
-
-    if (trafficData[srcIP] > PACKET_THRESHOLD) {
-        std::cout << "[ALERT] Possible DDoS detected from: " << srcIP << "\n";
+    
+    if (trafficData[srcIP] >= PACKET_THRESHOLD) {
+        std::cout << "[ALERT] Possible DDoS detected from: " << srcIP << " | Packet count: " << trafficData[srcIP] << "\n";
     }
+
 }
 
 
