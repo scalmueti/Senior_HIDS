@@ -9,6 +9,7 @@
 #include <mutex>
 #include <unordered_map>
 #include "ddos.h"
+#include "port_check.h"
 
 void displayNetworkDevices(const std::vector<NetworkDevice>& devices) {
     std::cout << "\nAvailable Network Interfaces:\n";
@@ -107,7 +108,8 @@ void menu() {
         std::cout << "\n=== Network Security Tool ===\n";
         std::cout << "1. Scan Active Network Interfaces\n";
         std::cout << "2. Start DDoS Detection\n";
-        std::cout << "3. Exit\n";
+        std::cout << "3. Start SSH Login Detection\n";
+        std::cout << "4. Exit\n";
         std::cout << "Enter choice: ";
 
         int choice;
@@ -138,6 +140,20 @@ void menu() {
                 ddosThread.join();
             }
         } else if (choice == 3) {
+            auto devices = getNetworkDevices();
+            std::string selectedDevice = selectActiveInterface(devices);
+            if (!selectedDevice.empty()) {
+                running = true;
+                std::thread SSHthread(monitorSSHConnection, selectedDevice);
+
+                std::cout << "Press Enter to stop SSH monitoring...\n";
+                std::cin.ignore();
+                std::cin.get();
+
+                running = false;
+                SSHthread.join();
+            }
+        } else if (choice == 4) {
             std::cout << "Exiting...\n";
             break;
         } else {
