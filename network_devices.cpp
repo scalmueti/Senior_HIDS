@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include "ddos.h"
 #include "port_check.h"
+#include "malware_detection.h"
 
 void displayNetworkDevices(const std::vector<NetworkDevice>& devices) {
     std::cout << "\nAvailable Network Interfaces:\n";
@@ -109,7 +110,8 @@ void menu() {
         std::cout << "1. Scan Active Network Interfaces\n";
         std::cout << "2. Start DDoS Detection\n";
         std::cout << "3. Start SSH Login Detection\n";
-        std::cout << "4. Exit\n";
+        std::cout << "4. Scan test malware\n";
+        std::cout << "5. Exit\n";
         std::cout << "Enter choice: ";
 
         int choice;
@@ -154,11 +156,12 @@ void menu() {
                 SSHthread.join();
             }
         } else if (choice == 4) {
+            scan_malware();
+        } else if (choice == 5) {
             std::cout << "Exiting...\n";
             break;
         } else {
-            std::cout << "Invalid choice. Try again.\n";
-        
+            std::cout << "Invalid choice, try again please";
         }
     }
 }
