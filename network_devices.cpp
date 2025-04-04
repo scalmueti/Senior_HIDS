@@ -11,6 +11,7 @@
 #include "ddos.h"
 #include "port_check.h"
 #include "malware_detection.h"
+#include "process_spawn.h"
 
 void displayNetworkDevices(const std::vector<NetworkDevice>& devices) {
     std::cout << "\nAvailable Network Interfaces:\n";
@@ -111,7 +112,8 @@ void menu() {
         std::cout << "2. Start DDoS Detection\n";
         std::cout << "3. Start SSH Login Detection\n";
         std::cout << "4. Scan test malware\n";
-        std::cout << "5. Exit\n";
+        std::cout << "5. Process spawn detector\n";
+        std::cout << "6. Exit\n";
         std::cout << "Enter choice: ";
 
         int choice;
@@ -158,6 +160,8 @@ void menu() {
         } else if (choice == 4) {
             scan_malware();
         } else if (choice == 5) {
+            detectParentChildProcesses();
+        } else if (choice == 6) {
             std::cout << "Exiting...\n";
             break;
         } else {
